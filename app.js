@@ -121,23 +121,58 @@ document.addEventListener('DOMContentLoaded', () => {
       card.className = 'book-card';
       card.id = `card-${book.id}`;
 
+      // Enforce sequential status options:
+      // "To read" can advance to "Reading"
+      // "Reading" can advance to "Finished"
+      // "Finished" is locked and cannot move backward
+      let statusControlHTML = '';
+      if (book.status === 'To read') {
+        statusControlHTML = `
+          <select 
+            id="status-${book.id}" 
+            class="status-select status-toread" 
+            data-book-id="${book.id}"
+            aria-label="Change status for ${escapeHTML(book.title)}"
+          >
+            <option value="To read" selected>To read</option>
+            <option value="Reading">Reading</option>
+          </select>
+        `;
+      } else if (book.status === 'Reading') {
+        statusControlHTML = `
+          <select 
+            id="status-${book.id}" 
+            class="status-select status-reading" 
+            data-book-id="${book.id}"
+            aria-label="Change status for ${escapeHTML(book.title)}"
+          >
+            <option value="Reading" selected>Reading</option>
+            <option value="Finished">Finished</option>
+          </select>
+        `;
+      } else {
+        // Status is Finished: locked from changing back to To read or Reading
+        statusControlHTML = `
+          <select 
+            id="status-${book.id}" 
+            class="status-select status-finished" 
+            data-book-id="${book.id}"
+            aria-label="Status for ${escapeHTML(book.title)}: Finished (locked)"
+            disabled
+          >
+            <option value="Finished" selected>Finished</option>
+          </select>
+        `;
+      }
+
       card.innerHTML = `
         <div class="book-info">
           <h3 class="book-card-title">${escapeHTML(book.title)}</h3>
           <p class="book-card-author">by ${escapeHTML(book.author)}</p>
         </div>
         <div class="book-status-wrapper">
-          <label for="status-${book.id}" class="sr-only">Change status for ${escapeHTML(book.title)}</label>
-          <select 
-            id="status-${book.id}" 
-            class="status-select ${getStatusClass(book.status)}" 
-            data-book-id="${book.id}"
-            aria-label="Change status for ${escapeHTML(book.title)}"
-          >
-            <option value="To read" ${book.status === 'To read' ? 'selected' : ''}>To read</option>
-            <option value="Reading" ${book.status === 'Reading' ? 'selected' : ''}>Reading</option>
-            <option value="Finished" ${book.status === 'Finished' ? 'selected' : ''}>Finished</option>
-          </select>
+          <label for="status-${book.id}" class="sr-only">Status for ${escapeHTML(book.title)}</label>
+          ${statusControlHTML}
         </div>
       `;
 
@@ -150,22 +185,37 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBooks();
   });
 
-  // 1-5 & 9. Handle Changing Status of an Individual Book (even when list is filtered)
+  // Handle Changing Status of an Individual Book (Sequential workflow: To read -> Reading -> Finished)
   bookList.addEventListener('change', (e) => {
     if (e.target && e.target.classList.contains('status-select')) {
       const bookId = e.target.dataset.bookId;
       const newStatus = e.target.value;
 
-      // 9. Match by unique ID in the master books array
+      // 6. Match by unique ID so changing one book does not affect other books
       const targetBook = books.find((b) => b.id === bookId);
       if (targetBook) {
-        targetBook.status = newStatus;
+        const currentStatus = targetBook.status;
 
-        // Update displayed styling immediately
-        e.target.className = `status-select ${getStatusClass(newStatus)}`;
+        // 1-3. Enforce valid sequential transitions:
+        // "To read" can go to "Reading"
+        // "Reading" can go to "Finished"
+        // "Finished" cannot be changed
+        const isValidTransition =
+          (currentStatus === 'To read' && newStatus === 'Reading') ||
+          (currentStatus === 'Reading' && newStatus === 'Finished');
 
-        // 8. Persist updated status to localStorage
-        saveBooksToStorage(books);
+        if (isValidTransition) {
+          targetBook.status = newStatus;
+
+          // 4. Save updated status to localStorage
+          saveBooksToStorage(books);
+
+          // Re-render so the dropdown updates options for the next valid step
+          renderBooks();
+        } else {
+          // Revert dropdown if an invalid transition is attempted
+          renderBooks();
+        }
       }
     }
   });

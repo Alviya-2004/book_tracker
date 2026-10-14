@@ -269,8 +269,15 @@ body {
   box-shadow: 0 0 0 2px rgba(140, 130, 117, 0.2);
 }
 
-.status-select:hover {
+.status-select:hover:not(:disabled) {
   filter: brightness(0.97);
+}
+
+.status-select:disabled {
+  cursor: default;
+  opacity: 0.95;
+  background-image: none;
+  padding-right: 0.8rem;
 }
 
 /* Accessibility helper */
