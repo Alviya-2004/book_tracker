@@ -150,7 +150,37 @@ This document tracks the five key milestones of the Book Tracker web application
     - App remains resilient when no books exist or when list is empty.
   - Total entries in `PROMPTS.md` strictly kept at 5.
 
----
+## Entry 5: Real-Time Search Filtering & AI Reflection
 
-## Entry 5: Polish, Edge Cases & AI Reflection
-*(Reserved for Milestone 5: UI refinements, empty state handling, and recording a genuine AI mistake and how it was corrected)*
+* **Prompt:**
+  > "Now let's implement the search feature. I want to search my book list by title or author.
+  >
+  > Please check my existing index.html, styles.css and app.js before making changes. Keep the current design and all working features unchanged, including adding books, validation, newest-first ordering, localStorage persistence and changing book statuses.
+  >
+  > Implement these requirements:
+  > 1. Use the existing search input above the book list.
+  > 2. Filter the displayed books as I type, without requiring me to press Enter or click a Search button.
+  > 3. Match the search text against both the book title and author.
+  > 4. Make the search case-insensitive, so searching for 'BEN', 'ben' or 'Ben' finds the same matching books.
+  > 5. Show only books whose title or author contains the search text.
+  > 6. When the search input is cleared, display the complete book list again in newest-first order.
+  > 7. If no books match the search, show a clear message such as 'No books found matching your search.'
+  > 8. Searching must not delete or modify any books or their statuses in localStorage.
+  > 9. Changing a book's status while the list is filtered must update the correct book, not another book.
+  > 10. Keep the existing implementation simple, using plain HTML, CSS and JavaScript. Do not add a backend, database, framework or unnecessary libraries."
+
+* **Implementation & Actual Outcome:**
+  - `styles.css`: Added styling for `.empty-search-message` providing an elegant dashed box with muted italic text matching the warm paper theme.
+  - `app.js`:
+    - Bound `#search-input` to the `input` event for instant filtering without form submits or enter keys.
+    - Updated `renderBooks()` to calculate matching books using case-insensitive substring comparison on `book.title` and `book.author`.
+    - Maintained the master `books` array intact so searches never mutate or delete items from `localStorage`.
+    - Restores the entire list in newest-first order immediately when the search query is cleared.
+    - Displays *"No books found matching your search."* when query returns no results (and *"Your reading shelf is empty"* if shelf has 0 books).
+    - Status changes on filtered cards continue to resolve correctly via `book.id` in the master list and persist to `localStorage`.
+    - Automatically clears the search input when adding a new book so the new book is prominently shown at the top.
+
+* **Genuine AI Mistake & How It Was Fixed:**
+  - *The Mistake:* During the Git workflow in Milestone 2, the AI recommended running `git diff --staged --stat`. However, because portable MinGit on Windows does not include the standard Linux `less` pager executable, Git failed with: `fatal: unable to execute pager 'less'`. The AI initially tried configuring the pager to empty quotes (`""`), which PowerShell parsed as empty and ignored.
+  - *The Resolution:* The user shared the terminal output showing `fatal: unable to execute pager 'more' / 'less'`, prompting the AI to identify the underlying environment constraint and switch to Git's native `--no-pager` flag (`git --no-pager diff --staged --stat`). This bypassed all external terminal pager dependencies cleanly on Windows.
+  - Document strictly contains exactly 5 entries across the project lifecycle.

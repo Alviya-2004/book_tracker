@@ -3,6 +3,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
   const addBookForm = document.getElementById('add-book-form');
+  const searchInput = document.getElementById('search-input');
   const titleInput = document.getElementById('book-title');
   const authorInput = document.getElementById('book-author');
   const statusSelect = document.getElementById('book-status');
@@ -85,11 +86,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Render books to the DOM
+  // Render books to the DOM with live search filtering
   function renderBooks() {
     bookList.innerHTML = '';
 
-    books.forEach((book) => {
+    const query = searchInput.value.trim().toLowerCase();
+
+    // 2-5. Filter by title or author (case-insensitive substring match)
+    const filteredBooks = books.filter((book) => {
+      if (!query) {
+        return true;
+      }
+      const titleMatch = book.title.toLowerCase().includes(query);
+      const authorMatch = book.author.toLowerCase().includes(query);
+      return titleMatch || authorMatch;
+    });
+
+    // 7. Show a clear message if no books match
+    if (filteredBooks.length === 0) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'empty-search-message';
+      if (books.length === 0) {
+        messageDiv.textContent = 'Your reading shelf is empty. Add a book above to get started!';
+      } else {
+        messageDiv.textContent = 'No books found matching your search.';
+      }
+      bookList.appendChild(messageDiv);
+      return;
+    }
+
+    // Render cards for matching books
+    filteredBooks.forEach((book) => {
       const card = document.createElement('article');
       card.className = 'book-card';
       card.id = `card-${book.id}`;
@@ -118,21 +145,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 1-5. Handle Changing Status of an Individual Book
+  // 2. Real-time filtering as user types (no enter or search button needed)
+  searchInput.addEventListener('input', () => {
+    renderBooks();
+  });
+
+  // 1-5 & 9. Handle Changing Status of an Individual Book (even when list is filtered)
   bookList.addEventListener('change', (e) => {
     if (e.target && e.target.classList.contains('status-select')) {
       const bookId = e.target.dataset.bookId;
       const newStatus = e.target.value;
 
-      // Ensure only the selected book is modified using its unique ID
+      // 9. Match by unique ID in the master books array
       const targetBook = books.find((b) => b.id === bookId);
       if (targetBook) {
         targetBook.status = newStatus;
 
-        // 3 & 6. Update displayed status styling immediately
+        // Update displayed styling immediately
         e.target.className = `status-select ${getStatusClass(newStatus)}`;
 
-        // 4. Save updated status to localStorage
+        // 8. Persist updated status to localStorage
         saveBooksToStorage(books);
       }
     }
@@ -204,6 +236,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. Save updated book list to localStorage
     saveBooksToStorage(books);
+
+    // Reset search input so newly added book is visible immediately
+    searchInput.value = '';
 
     // 2. Render the updated list
     renderBooks();
