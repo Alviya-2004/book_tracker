@@ -285,4 +285,17 @@ body {
   border: 0;
 }
 
+/* Empty Search & Shelf Message */
+.empty-search-message {
+  text-align: center;
+  padding: 2.25rem 1rem;
+  color: var(--text-muted);
+  font-style: italic;
+  background-color: var(--bg-surface);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+}
+
+
 
