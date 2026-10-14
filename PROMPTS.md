@@ -58,7 +58,33 @@ This document tracks the five key milestones of the Book Tracker web application
 ---
 
 ## Entry 2: Core In-Memory Book Creation & Rendering
-*(Reserved for Milestone 2: Dynamic state management, form submission handling, and newest-first card rendering)*
+
+* **Prompt:**
+  > "Now let's implement the first actual feature. I want to be able to add books and see them in the list.
+  >
+  > Please check the existing index.html, styles.css and app.js before making changes. Keep the current design and file structure instead of rebuilding everything.
+  >
+  > Implement these requirements:
+  > 1. When I submit the form, create a book using the entered title, author and selected status.
+  > 2. Display the newly added book at the top of the list, so the newest book appears first.
+  > 3. Show the title, author and current status on each book card.
+  > 4. Title and author are required. If I submit the form with an empty title, show 'Please enter a title' under the title field. If the author is empty, show 'Please enter an author' under the author field.
+  > 5. Remove unnecessary spaces from the beginning and end of the title and author.
+  > 6. If the form is valid, add the book to the list and clear the form.
+  > 7. Use plain JavaScript and the existing HTML and CSS files. Don't use dummy data or add localStorage, search functionality, status editing, deletion, or other new features yet."
+
+* **Implementation & Actual Outcome:**
+  - `index.html`: Added `novalidate` attribute to `#add-book-form` and added inline error message containers (`#title-error` and `#author-error`) under each field.
+  - `styles.css`: Added styles for inline error messages (`.error-message`, `.input-invalid`) and styled `.book-card` with flex layout, hover effects, and `.status-badge` variants for `To read`, `Reading`, and `Finished`.
+  - `app.js`:
+    - Set up in-memory `books` array.
+    - Implemented form submit listener preventing default browser submission.
+    - Added whitespace trimming (`.trim()`) to title and author inputs.
+    - Enforced validation: displays "Please enter a title" and "Please enter an author" under their respective fields when empty; clears errors on user input.
+    - Prepended new book objects using `books.unshift(newBook)` to ensure newest books render at the top.
+    - Added `renderBooks()` function dynamically creating cards showing Title, Author, and Status badge.
+    - Cleared form fields with `form.reset()` and refocused title field on valid submission.
+  - Verification: Changes deployed locally and ready for user manual browser verification and feature-branch Git commit.
 
 ---
 
