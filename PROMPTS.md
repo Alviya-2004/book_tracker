@@ -89,12 +89,66 @@ This document tracks the five key milestones of the Book Tracker web application
 ---
 
 ## Entry 3: LocalStorage Persistence & State Hydration
-*(Reserved for Milestone 3: Saving state to localStorage and hydrating upon page refresh)*
+
+* **Prompt:**
+  > "Now let's implement the next feature: saving the books so they remain available even after I refresh the page.
+  >
+  > Please check my existing index.html, styles.css and app.js before making any changes. Keep the current design and working functionality unchanged.
+  >
+  > Implement the following:
+  > 1. Save the book list in localStorage whenever a book is added.
+  > 2. When the page opens or refreshes, load the saved books from localStorage and display them.
+  > 3. Save each book's complete data, including its title, author, status and any identifier or timestamp used by the existing code.
+  > 4. Keep the newest-first ordering after loading the saved books.
+  > 5. Handle the case where localStorage has no saved books yet, so the app starts with an empty list.
+  > 6. Handle invalid or corrupted saved JSON safely without crashing the app. Explain how you handled this case.
+  > 7. Keep the existing validation and book-adding functionality working. Do not add search, status editing, delete buttons or other new features yet."
+
+* **Implementation & Actual Outcome:**
+  - `app.js`:
+    - Defined storage key `book_tracker_books`.
+    - Implemented `loadBooksFromStorage()` wrapped in a `try...catch` block:
+      - Returns empty array `[]` if storage is empty.
+      - Checks `Array.isArray()` to safeguard against non-array payloads.
+      - Filters valid objects containing expected properties (`title`, `author`, `status`).
+      - Sorts books in descending order by `createdAt` to guarantee newest-first order.
+      - Gracefully catches `SyntaxError` on malformed/corrupted JSON, logging a console warning and returning `[]` without throwing or crashing the application.
+    - Implemented `saveBooksToStorage(booksArray)` serializing state via `JSON.stringify()`.
+    - Attached automatic storage synchronization whenever a valid book is added.
+    - Called `renderBooks()` on page load to immediately hydrate the list from storage.
+  - Maintained existing HTML structure, CSS styling, validation, and whitespace trimming.
+  - Total entries in `PROMPTS.md` strictly kept at 5.
 
 ---
 
-## Entry 4: Interactive Status Toggle & Real-Time Search Filtering
-*(Reserved for Milestone 4: Inline status modification and live search query filtering)*
+## Entry 4: Interactive Book Status Updating & Persistence
+
+* **Prompt:**
+  > "Now let's implement the next feature: changing a book's reading status.
+  >
+  > Please check my existing index.html, styles.css and app.js before making changes. Keep the current design and all working features unchanged, especially adding books, validation, newest-first ordering and localStorage persistence.
+  >
+  > Implement these requirements:
+  > 1. Allow me to change the status of each book between To read, Reading and Finished.
+  > 2. Add a status dropdown to each book card, or another simple control that makes it clear which book's status I'm changing.
+  > 3. When I select a new status, update that book's displayed status immediately.
+  > 4. Save the updated status to localStorage so it remains correct after refreshing the page.
+  > 5. Make sure changing one book's status does not accidentally change the status of other books.
+  > 6. Keep the existing status labels and styling consistent with the selected status.
+  > 7. Handle the saved data safely and do not break the app if there are no books yet.
+  >
+  > Use plain HTML, CSS and JavaScript. Do not add search, delete functionality, a backend, a database or unnecessary libraries yet."
+
+* **Implementation & Actual Outcome:**
+  - `styles.css`: Added `.status-select` component styling replicating the pill badge design with an embedded subtle SVG downward chevron, smooth transition, and `.sr-only` accessibility helper.
+  - `app.js`:
+    - Updated `renderBooks()` to output an accessible `<select class="status-select">` with options `To read`, `Reading`, and `Finished` on every book card.
+    - Attached a delegated `change` event listener on `#book-list`.
+    - Identified targeted books by their unique `data-book-id`, ensuring changes to one book never affect other books.
+    - Updated the selected book's `.status` property in memory and refreshed its badge CSS class dynamically.
+    - Called `saveBooksToStorage(books)` immediately upon change to persist status updates across sessions.
+    - App remains resilient when no books exist or when list is empty.
+  - Total entries in `PROMPTS.md` strictly kept at 5.
 
 ---
 

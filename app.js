@@ -1,4 +1,4 @@
-// Book Tracker - In-Memory Book Creation & Dynamic Rendering
+// Book Tracker - Core Logic & LocalStorage Persistence
 
 document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
@@ -10,8 +10,60 @@ document.addEventListener('DOMContentLoaded', () => {
   const authorError = document.getElementById('author-error');
   const bookList = document.getElementById('book-list');
 
-  // In-memory state (newest books stored at the beginning)
-  const books = [];
+  // LocalStorage Key
+  const STORAGE_KEY = 'book_tracker_books';
+
+  // Safely load books from localStorage with error handling for missing/corrupted data
+  function loadBooksFromStorage() {
+    try {
+      const storedData = localStorage.getItem(STORAGE_KEY);
+      
+      // 5. If no data exists yet, start with an empty list
+      if (!storedData) {
+        return [];
+      }
+
+      const parsedData = JSON.parse(storedData);
+
+      // 6. Safe validation: ensure parsed data is an array
+      if (!Array.isArray(parsedData)) {
+        console.warn('LocalStorage data is not an array. Recovering with empty list.');
+        return [];
+      }
+
+      // Filter out any corrupted or incomplete items
+      const validBooks = parsedData.filter((item) => {
+        return (
+          item &&
+          typeof item === 'object' &&
+          typeof item.title === 'string' &&
+          typeof item.author === 'string' &&
+          typeof item.status === 'string'
+        );
+      });
+
+      // 4. Ensure newest-first ordering (descending by createdAt timestamp)
+      validBooks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+      return validBooks;
+    } catch (error) {
+      // 6. Graceful recovery: if JSON is corrupted or invalid, don't crash
+      console.error('Failed to parse books from localStorage. Corrupted data handled gracefully:', error);
+      return [];
+    }
+  }
+
+  // Save books array to localStorage
+  function saveBooksToStorage(booksArray) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(booksArray));
+    } catch (error) {
+      console.error('Failed to save books to localStorage:', error);
+    }
+  }
+
+  // Initialize books state from storage
+  let books = loadBooksFromStorage();
 
   // Helper function to escape HTML special characters for safe rendering
   function escapeHTML(str) {
@@ -40,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
     books.forEach((book) => {
       const card = document.createElement('article');
       card.className = 'book-card';
+      card.id = `card-${book.id}`;
 
       card.innerHTML = `
         <div class="book-info">
@@ -47,13 +100,46 @@ document.addEventListener('DOMContentLoaded', () => {
           <p class="book-card-author">by ${escapeHTML(book.author)}</p>
         </div>
         <div class="book-status-wrapper">
-          <span class="status-badge ${getStatusClass(book.status)}">${escapeHTML(book.status)}</span>
+          <label for="status-${book.id}" class="sr-only">Change status for ${escapeHTML(book.title)}</label>
+          <select 
+            id="status-${book.id}" 
+            class="status-select ${getStatusClass(book.status)}" 
+            data-book-id="${book.id}"
+            aria-label="Change status for ${escapeHTML(book.title)}"
+          >
+            <option value="To read" ${book.status === 'To read' ? 'selected' : ''}>To read</option>
+            <option value="Reading" ${book.status === 'Reading' ? 'selected' : ''}>Reading</option>
+            <option value="Finished" ${book.status === 'Finished' ? 'selected' : ''}>Finished</option>
+          </select>
         </div>
       `;
 
       bookList.appendChild(card);
     });
   }
+
+  // 1-5. Handle Changing Status of an Individual Book
+  bookList.addEventListener('change', (e) => {
+    if (e.target && e.target.classList.contains('status-select')) {
+      const bookId = e.target.dataset.bookId;
+      const newStatus = e.target.value;
+
+      // Ensure only the selected book is modified using its unique ID
+      const targetBook = books.find((b) => b.id === bookId);
+      if (targetBook) {
+        targetBook.status = newStatus;
+
+        // 3 & 6. Update displayed status styling immediately
+        e.target.className = `status-select ${getStatusClass(newStatus)}`;
+
+        // 4. Save updated status to localStorage
+        saveBooksToStorage(books);
+      }
+    }
+  });
+
+  // Initial render on page load / refresh
+  renderBooks();
 
   // Clear validation error when user begins typing
   titleInput.addEventListener('input', () => {
@@ -74,14 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
   addBookForm.addEventListener('submit', (e) => {
     e.preventDefault();
 
-    // 5. Trim whitespace from beginning and end
     const title = titleInput.value.trim();
     const author = authorInput.value.trim();
     const status = statusSelect.value;
 
     let isValid = true;
 
-    // 4. Validate Title
+    // Validate Title
     if (!title) {
       titleError.textContent = 'Please enter a title';
       titleInput.classList.add('input-invalid');
@@ -91,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
       titleInput.classList.remove('input-invalid');
     }
 
-    // 4. Validate Author
+    // Validate Author
     if (!author) {
       authorError.textContent = 'Please enter an author';
       authorInput.classList.add('input-invalid');
@@ -101,12 +186,11 @@ document.addEventListener('DOMContentLoaded', () => {
       authorInput.classList.remove('input-invalid');
     }
 
-    // Stop if validation fails
     if (!isValid) {
       return;
     }
 
-    // 1. Create a book object
+    // 3. Create complete book object (preserving id, title, author, status, createdAt)
     const newBook = {
       id: 'book_' + Date.now(),
       title: title,
@@ -115,13 +199,16 @@ document.addEventListener('DOMContentLoaded', () => {
       createdAt: Date.now()
     };
 
-    // 2. Add to top of array so newest book appears first
+    // 4. Add to beginning of array (newest first)
     books.unshift(newBook);
 
-    // 3. Render the updated list
+    // 1. Save updated book list to localStorage
+    saveBooksToStorage(books);
+
+    // 2. Render the updated list
     renderBooks();
 
-    // 6. Clear the form and reset focus
+    // Clear form and reset focus
     addBookForm.reset();
     titleInput.focus();
   });
